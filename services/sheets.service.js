@@ -1,34 +1,80 @@
 // services/sheets.service.js
 
 const { google } = require('googleapis');
-const NodeCache = require('node-cache');
-const fs = require('fs'); // <--- ¡Módulo de archivos necesario!
+const constants = require('../constants'); // Importamos la configuración fija
+const utils = require('./utils'); // Importamos las funciones de transformación
 
-// ... (El resto de las declaraciones de variables)
+// --- SINGLETON DE CONEXIÓN (Variables de estado) ---
+let authClient = null;
+let sheetsClient = null;
+
+// Helper para envolver async
+const asyncHandler = fn => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
 
 // --------------------------------------------------------------------------
-// --- LÓGICA CORE: INICIALIZACIÓN, AUTENTICACIÓN Y CARGA DE CONFIG ---
+// --- FUNCIÓN PRINCIPAL DE GOOGLE SHEETS (Migrada y Limpia) ---
 // --------------------------------------------------------------------------
 
-function initializeSheetsService() {
-    try {
-        // 0. Ruta al archivo de configuración creado por Dockerfile
-        const CONFIG_FILE_PATH = '/app/cliente_config.json';
-        
-        // Leemos el string JSON del archivo (Seguro contra saltos de línea de ENV)
-        const CLIENTE_CONFIG_JSON_STRING = fs.readFileSync(CONFIG_FILE_PATH, 'utf8'); 
-        
-        // 1. Cargar Configuración de Cliente (¡Nueva lectura segura!)
-        const allConfigs = JSON.parse(CLIENTE_CONFIG_JSON_STRING); // Parseo SEGURO desde archivo
-        // ... (El resto de la lógica de inicialización y autenticación se mantiene)
-
-    } catch (error) {
-        console.error(`[SERVICE] ERROR CRÍTICO al inicializar Sheets o cargar config: ${error.message}`);
-        
-        if (error.code === 'ENOENT') {
-             console.error(`DIAGNÓSTICO: No se encuentra el archivo ${CONFIG_FILE_PATH}. Verifica la variable CLIENTE_CONFIG_JSON en EasyPanel.`);
-        }
-        process.exit(1); 
+/**
+ * Función que realiza la llamada real a la API de Google Sheets.
+ * Implementa el Singleton Perezoso para la conexión.
+ * @param {string} sheetName - Nombre de la hoja.
+ * @param {string} range - Rango A1.
+ */
+async function getSheetData(sheetName, range) {
+    // 1. Inicialización Perezosa (Singleton): Solo se autentica la primera vez
+    if (!sheetsClient) {
+        authClient = new google.auth.GoogleAuth({
+            keyFile: constants.CREDENTIALS_PATH,
+            scopes: 'https://www.googleapis.com/auth/spreadsheets.readonly',
+        });
+        sheetsClient = google.sheets({ version: 'v4', auth: authClient });
+        console.log("[SERVICE] Conexión a Google Sheets autenticada y establecida.");
     }
+    
+    if (!sheetsClient) {
+         throw new Error("Cliente de Google Sheets no inicializado. Verifique el log de arranque.");
+    }
+
+    try {
+        const response = await sheetsClient.spreadsheets.values.get({
+            spreadsheetId: constants.SPREADSHEET_ID,
+            range: `${sheetName}!${range}`,
+        });
+
+        const values = response.data.values;
+        if (!values || values.length === 0) return [];
+
+        // Lógica de manipulación de datos (basada en el V1 original)
+        
+        // *** EXCEPCIÓN: Retornar valores crudos para el procesamiento manual ***
+        if ((sheetName === constants.HOJA_GANANCIA && (range === constants.RANGO_TASAS_VES || range === constants.RANGO_HEADERS_GANANCIA)) ||
+             (sheetName === constants.HOJA_IMAGEN && (range === constants.RANGO_IMAGEN || range === constants.RANGO_FUNDABLOCK || range === constants.RANGO_TASAS_COP_VES))) {
+            return values;
+        }
+
+        // Lógica de filtrado de última fila (Mercado)
+        if (sheetName === constants.HOJA_PRECIOS && range === constants.RANGO_PRECIOS && values.length > 0) {
+            const data = utils.transformToObjects(values);
+            return (data.length > 0) ? [data[data.length - 1]] : [];
+        }
+
+        return utils.transformToObjects(values);
+
+    } catch (err) {
+        console.error(`[Sheets API] Error al leer ${sheetName}/${range}: ${err}`);
+        throw new Error('Error al acceder a Google Sheets. Verifique la conexión/rangos.');
+    }
 }
-// ... (resto del archivo)
+
+
+// --------------------------------------------------------------------------
+// --- EXPORTACIÓN PÚBLICA (Funciones y Herramientas) ---
+// --------------------------------------------------------------------------
+
+module.exports = {
+    asyncHandler,
+    getSheetData,
+};

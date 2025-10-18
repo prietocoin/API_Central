@@ -9,7 +9,7 @@ const dataController = require('./controllers/data.controller'); // Lógica de l
 const app = express();
 
 // --- CONFIGURACIÓN DE ENTORNO ---
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081; // <--- CAMBIO: Ahora usa 8081 como valor por defecto
 
 // --- MIDDLEWARE Y RUTA RAÍZ ---
 app.use((req, res, next) => {

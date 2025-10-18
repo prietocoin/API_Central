@@ -1,0 +1,14 @@
+{
+  "name": "api_central_v2",
+  "version": "1.0.0",
+  "description": "API Central con arquitectura de servicios y configuración dinámica.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "googleapis": "^128.0.0",
+    "node-cache": "^5.1.2"
+  }
+}

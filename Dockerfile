@@ -1,14 +1,15 @@
 # --- FASE 1: BUILD (Instalación de dependencias) ---
 FROM node:20-alpine AS builder
 
-# Argumento para las credenciales de Google (SECRETO - Se pasa desde EasyPanel)
-ARG GOOGLE_CREDENTIALS_JSON
+# (ELIMINADO: El ARG GOOGLE_CREDENTIALS_JSON ya no es necesario)
+# EasyPanel montará el archivo después, en tiempo de ejecución.
 
 # Establece el directorio de trabajo
 WORKDIR /app
 
-# Copia los archivos de definición de dependencias (package.json debe estar en el repositorio)
-COPY package.json package-lock.json ./
+# Copia los archivos de definición de dependencias
+# (CORREGIDO: Se quita package-lock.json para evitar el error de "not found")
+COPY package.json ./
 
 # Instala las dependencias de producción
 RUN npm install --omit=dev
@@ -25,10 +26,9 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copia el código fuente completo (index.js, constants.js, services/, controllers/)
 COPY . .
 
-# ⚠️ PASO CRÍTICO: Escribir el contenido de la credencial (GOOGLE_CREDENTIALS_JSON) a un archivo.
-# Esto garantiza que el archivo exista en /workspace/credentials.json para que el código JS lo encuentre.
-RUN mkdir -p /workspace/ && \
-    printf "%s" "$GOOGLE_CREDENTIALS_JSON" > /workspace/credentials.json
+# (ELIMINADO: El RUN para crear /workspace/credentials.json)
+# El "Punto de Montaje" de EasyPanel se encargará de poner el archivo 
+# en /workspace/credentials.json automáticamente.
 
 # Expone el puerto (8081 es el valor por defecto en index.js)
 EXPOSE 8081

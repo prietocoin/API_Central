@@ -1,0 +1,37 @@
+// constants.js
+
+// --- CONFIGURACIÓN DE CONEXIÓN (IDs y Paths) ---
+const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
+const CREDENTIALS_PATH = '/workspace/credentials.json';
+
+// --- DEFINICIONES ESTRUCTURALES (Hojas y Rangos) ---
+const HOJA_GANANCIA = 'Miguelacho';
+const RANGO_GANANCIA = 'B2:L12';
+const RANGO_HEADERS_GANANCIA = 'B2:L2';
+const RANGO_TASAS_VES = 'B23:L23';
+const HOJA_PRECIOS = 'Mercado';
+const RANGO_PRECIOS = 'A1:M999';
+const HOJA_IMAGEN = 'imagen';
+const RANGO_IMAGEN = 'B15:L16';
+const RANGO_FUNDABLOCK = 'B18:K19';
+const RANGO_TASAS_COP_VES = 'B21:L22';
+
+// --- DEFINICIONES DE RUTAS ---
+const RUTA_TASAS_PROMEDIO = '/tasas-promedio';
+const RUTA_MATRIZ_GANANCIA = '/matriz-ganancia';
+const RUTA_TASAS_VES = '/tasas-ves';
+const RUTA_DATOS_IMAGEN = '/datos-imagen';
+const RUTA_TASAS_FUNDABLOCK = '/tasas-fundablock';
+const RUTA_TASAS_COP_VES = '/tasas-cop_ves';
+const RUTA_CONVERTIR = '/convertir';
+
+module.exports = {
+    SPREADSHEET_ID, CREDENTIALS_PATH,
+    HOJA_GANANCIA, RANGO_GANANCIA, RANGO_HEADERS_GANANCIA, RANGO_TASAS_VES, 
+    HOJA_PRECIOS, RANGO_PRECIOS, HOJA_IMAGEN, RANGO_IMAGEN, RANGO_FUNDABLOCK, 
+    RANGO_TASAS_COP_VES,
+    RUTAS: {
+        RUTA_TASAS_PROMEDIO, RUTA_MATRIZ_GANANCIA, RUTA_TASAS_VES, RUTA_DATOS_IMAGEN,
+        RUTA_TASAS_FUNDABLOCK, RUTA_TASAS_COP_VES, RUTA_CONVERTIR
+    }
+};

@@ -2,11 +2,12 @@
 
 const express = require('express');
 const { google } = require('googleapis');
-const constants = require('./constants'); // Constantes fijas de IDs, rangos y rutas
+const constants = require('./constants');
 const utils = require('./services/utils');
 const sheetsService = require('./services/sheets.service'); // Singleton de conexión y I/O
 const dataController = require('./controllers/data.controller'); // Lógica de la petición/respuesta
 const app = express();
+const fs = require('fs'); // Añadido para la ruta de diagnóstico
 
 // --- CONFIGURACIÓN DE ENTORNO ---
 const PORT = process.env.PORT || 8081; 

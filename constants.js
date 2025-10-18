@@ -1,8 +1,8 @@
 // constants.js
 
-// --- CONFIGURACIÓN DE CONEXIÓN (IDs) ---
+// --- CONFIGURACIÓN DE CONEXIÓN (IDs y Paths) ---
 const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
-// ELIMINADO: const CREDENTIALS_PATH = '/workspace/credentials.json';
+const CREDENTIALS_PATH = '/workspace/credentials.json';
 
 // --- DEFINICIONES ESTRUCTURALES (Hojas y Rangos) ---
 const HOJA_GANANCIA = 'Miguelacho';
@@ -26,8 +26,7 @@ const RUTA_TASAS_COP_VES = '/tasas-cop_ves';
 const RUTA_CONVERTIR = '/convertir';
 
 module.exports = {
-    // ELIMINADO: CREDENTIALS_PATH de la exportación
-    SPREADSHEET_ID, 
+    SPREADSHEET_ID, CREDENTIALS_PATH,
     HOJA_GANANCIA, RANGO_GANANCIA, RANGO_HEADERS_GANANCIA, RANGO_TASAS_VES, 
     HOJA_PRECIOS, RANGO_PRECIOS, HOJA_IMAGEN, RANGO_IMAGEN, RANGO_FUNDABLOCK, 
     RANGO_TASAS_COP_VES,

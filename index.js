@@ -1,16 +1,16 @@
 // index.js (El Router Final)
 
 const express = require('express');
-const { google } = require('googleapis');
+const { google } = require('googleapis'); // Aunque no se usa aquí, los módulos hijos pueden necesitarlo
 const constants = require('./constants');
 const utils = require('./services/utils');
 const sheetsService = require('./services/sheets.service'); // Singleton de conexión y I/O
 const dataController = require('./controllers/data.controller'); // Lógica de la petición/respuesta
 const app = express();
-const fs = require('fs'); // Añadido para la ruta de diagnóstico
+// ELIMINADO: const fs = require('fs'); // Ya no es necesario
 
 // --- CONFIGURACIÓN DE ENTORNO ---
-const PORT = process.env.PORT || 8081; 
+const PORT = process.env.PORT || 8081; 
 
 
 // --- MIDDLEWARE Y RUTA RAÍZ ---
@@ -63,7 +63,7 @@ app.get('/', (req, res) => {
                         return `
                         <li class="endpoint-item">
                             <a href="${linkPath}">${fullLinkDisplay}</a>
-                            <p>${ep.description}</p>
+                  _B_           <p>${ep.description}</p>
                         </li>
                         `;
                     }).join('')}
@@ -78,26 +78,8 @@ app.get('/', (req, res) => {
     res.send(htmlContent);
 });
 
-// --- RUTA DE DIAGNÓSTICO CRÍTICO ---
-app.get('/diagnostico-credenciales', (req, res) => {
-    const path = constants.CREDENTIALS_PATH;
-    try {
-        const fileContent = fs.readFileSync(path, 'utf8');
-        res.json({
-            status: 'OK',
-            path: path,
-            message: 'El archivo de credenciales existe y se puede leer.',
-            file_size: fileContent.length
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: 'ERROR',
-            path: path,
-            error: error.code,
-            message: `El archivo NO se encuentra en la ruta esperada. Causa: ${error.message}`
-        });
-    }
-});
+// --- RUTA DE DIAGNÓSTICO CRÍTICO (ELIMINADA) ---
+// Se eliminó el app.get('/diagnostico-credenciales', ...)
 
 
 // --- RUTAS DE LA API (DELEGADAS AL CONTROLADOR) ---
@@ -127,13 +109,13 @@ app.get(constants.RUTAS.RUTA_CONVERTIR, asyncHandler(dataController.getConvertir
 
 // --- MANEJADOR DE ERRORES (Recomendado) ---
 app.use((err, req, res, next) => {
-    const statusCode = err.statusCode || 500;
-    console.error(`[ERROR] ${req.path}: ${err.message}`, err.stack); 
+    const statusCode = err.statusCode || 500;
+    console.error(`[ERROR] ${req.path}: ${err.message}`, err.stack); 
 
-    res.status(statusCode).json({
-        error: 'Error interno del servidor en la API CENTRAL.',
-        detalle: err.message,
-    });
+    res.status(statusCode).json({
+        error: 'Error interno del servidor en la API CENTRAL.',
+        detalle: err.message,
+    });
 });
 
 

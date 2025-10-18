@@ -5,9 +5,12 @@ const app = express();
 
 // Importamos el Controlador
 const dataController = require('./controllers/data.controller');
-// Importamos asyncHandler y CLIENTE_ACTIVO directamente del objeto sheetsService (soluciona TypeError)
-const sheetsService = require('./services/sheets.service'); // Necesario para disparar la inicialización
-const { asyncHandler, CLIENTE_ACTIVO } = sheetsService; 
+// ⚠️ CORRECCIÓN: Importamos el servicio completo para garantizar la inicialización
+const sheetsService = require('./services/sheets.service'); 
+
+// Accedemos a las funciones y variables DEL OBJETO IMPORTADO, no por desestructuración
+const asyncHandler = sheetsService.asyncHandler;
+const CLIENTE_ACTIVO = sheetsService.CLIENTE_ACTIVO; 
 
 // --- CONFIGURACIÓN DE ENTORNO DINÁMICA ---
 const PORT = process.env.PORT || 8080;
@@ -50,7 +53,7 @@ app.get('/convertir', asyncHandler(dataController.getConvertir));
 
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
-    // Debemos acceder a CLIENTE_ACTIVO del servicio
+    // Accedemos de forma segura a la propiedad del objeto
     const cliente = sheetsService.CLIENTE_ACTIVO || 'DESCONOCIDO'; 
     
     console.error(`[ERROR ${statusCode} en ${req.path}] para cliente ${cliente}`, err.message, err.stack); 

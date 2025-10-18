@@ -1,11 +1,10 @@
 // services/sheets.service.js
 
 const { google } = require('googleapis');
-const constants = require('../constants'); // Importamos la configuración fija
-const utils = require('./utils'); // Importamos las funciones de transformación
+const constants = require('../constants');
+const utils = require('./utils'); // Necesita el archivo utils.js (creado en el paso anterior)
 
 // --- SINGLETON DE CONEXIÓN (Variables de estado) ---
-let authClient = null;
 let sheetsClient = null;
 
 // Helper para envolver async
@@ -26,9 +25,9 @@ const asyncHandler = fn => (req, res, next) => {
 async function getSheetData(sheetName, range) {
     // 1. Inicialización Perezosa (Singleton): Solo se autentica la primera vez
     if (!sheetsClient) {
-        authClient = new google.auth.GoogleAuth({
+        const authClient = new google.auth.GoogleAuth({
             keyFile: constants.CREDENTIALS_PATH,
-            scopes: 'https://www.googleapis.com/auth/spreadsheets.readonly',
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
         });
         sheetsClient = google.sheets({ version: 'v4', auth: authClient });
         console.log("[SERVICE] Conexión a Google Sheets autenticada y establecida.");

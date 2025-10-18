@@ -2,6 +2,7 @@
 
 const sheetsService = require('../services/sheets.service');
 const constants = require('../constants');
+const utils = require('../services/utils'); // Para lógica de parseo si es necesario aquí
 
 // --------------------------------------------------------------------------
 // --- LÓGICA DE NEGOCIO POR ENDPOINT (Migrada del index.js) ---
@@ -11,7 +12,6 @@ const constants = require('../constants');
  * 1. Controlador para /tasas-promedio
  */
 async function getTasasPromedio(req, res) {
-    // La lógica de última fila está en getSheetData del servicio
     const data = await sheetsService.getSheetData(constants.HOJA_PRECIOS, constants.RANGO_PRECIOS);
     res.json(data);
 }
@@ -28,7 +28,7 @@ async function getMatrizGanancia(req, res) {
  * 3. Controlador para /tasas-ves (Lógica compleja)
  */
 async function getTasasVES(req, res) {
-    // Leemos los encabezados de B2:L2 y los valores de B23:L23 (Usando el servicio)
+    // La lógica de combinación de encabezados y valores reside aquí, delegando la I/O al servicio
     const headersArray = await sheetsService.getSheetData(constants.HOJA_GANANCIA, constants.RANGO_HEADERS_GANANCIA); 
     const valuesArray = await sheetsService.getSheetData(constants.HOJA_GANANCIA, constants.RANGO_TASAS_VES); 
 
@@ -86,8 +86,8 @@ async function getTasasCopVes(req, res) {
             const value = values[index] || '';
 
             if (key) {
-                // Aquí usamos la función parseFactor, que se asume existe en utils
-                ratesObject[key] = value.replace(',', '.'); // Solo hacemos la sustitución
+                // Aquí usamos la lógica de parseo de coma decimal
+                ratesObject[key] = value.replace(',', '.'); 
             }
         }
     }
@@ -98,7 +98,7 @@ async function getTasasCopVes(req, res) {
  * 7. Controlador para /convertir
  */
 async function getConvertir(req, res) {
-    // Implementación placeholder para el servicio de conversión
+    // Implementación placeholder
     res.status(501).json({ error: "Servicio de Conversión (RUTA_CONVERTIR) aún no implementado." });
 }
 

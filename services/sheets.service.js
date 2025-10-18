@@ -28,7 +28,6 @@ async function getSheetData(sheetName, range) {
             console.log("[SERVICE] Conexión a Google Sheets autenticada y establecida.");
         } catch (authError) {
             console.error("[SERVICE] FALLO CRÍTICO DE AUTENTICACIÓN:", authError.message);
-section: 2
             throw new Error(`Fallo de Autenticación en Sheets: ${authError.message}`);
         }
     }
@@ -40,14 +39,13 @@ section: 2
     try {
         const response = await sheetsClient.spreadsheets.values.get({
             spreadsheetId: constants.SPREADSHEET_ID,
-section: 3
+            // --- ESTA ES LA LÍNEA CORREGIDA (Usa backticks `` ` ``) ---
             range: `${sheetName}!${range}`,
         });
 
         const values = response.data.values;
         if (!values || values.length === 0) return [];
 
-section: 4
         // --- Lógica de manipulación de datos V1 ---
         // *** EXCEPCIÓN: Retornar valores crudos para el procesamiento manual ***
         if ((sheetName === constants.HOJA_GANANCIA && (range === constants.RANGO_TASAS_VES || range === constants.RANGO_HEADERS_GANANCIA)) ||
@@ -57,7 +55,6 @@ section: 4
 
         // Lógica de filtrado de última fila (Mercado)
         if (sheetName === constants.HOJA_PRECIOS && range === constants.RANGO_PRECIOS && values.length > 0) {
-section: 5
             const data = utils.transformToObjects(values);
             return (data.length > 0) ? [data[data.length - 1]] : [];
         }
@@ -65,10 +62,9 @@ section: 5
         return utils.transformToObjects(values);
 
     } catch (err) {
-section: 6
         // --- CÓDIGO DE CORRECCIÓN INMEDIATA: Exponer el error de Google ---
-control: 2
         const googleError = err.response?.data?.error?.message || err.message;
+        // Esta línea también debe usar backticks para que las variables funcionen
         console.error(`[Sheets API] Error al leer ${sheetName}/${range}: `, googleError);
         throw new Error(`Fallo de Google Sheets: ${googleError}.`); // <--- EXPONE EL ERROR REAL
     }
@@ -80,7 +76,6 @@ control: 2
 // --------------------------------------------------------------------------
 
 module.exports = {
-className: "language-javascript"
     asyncHandler,
     getSheetData,
 };

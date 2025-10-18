@@ -2,18 +2,15 @@
 
 const express = require('express');
 const app = express();
-// Importamos la configuración de rangos y rutas
-const config = require('./config/config'); 
 
 // Importamos el Controlador
 const dataController = require('./controllers/data.controller');
-// Importamos asyncHandler directamente del objeto sheetsService para que Node.js lo reconozca
-const { asyncHandler, CLIENTE_ACTIVO } = require('./services/sheets.service'); // <--- ¡CORRECCIÓN!
+// Importamos asyncHandler y CLIENTE_ACTIVO directamente del objeto sheetsService (soluciona TypeError)
+const sheetsService = require('./services/sheets.service'); // Necesario para disparar la inicialización
+const { asyncHandler, CLIENTE_ACTIVO } = sheetsService; 
 
-// --- CONFIGURACIÓN DE ENTORNO DINÁMICA (Cargada y Validada Previamente) ---
+// --- CONFIGURACIÓN DE ENTORNO DINÁMICA ---
 const PORT = process.env.PORT || 8080;
-// No necesitamos definir CLIENTE_ACTIVO de nuevo, lo tomamos de la desestructuración
-// const CLIENTE_ACTIVO = sheetsService.CLIENTE_ACTIVO; // Línea que se elimina
 
 // --------------------------------------------------------------------------
 // --- MIDDLEWARE GENERAL ---
@@ -37,26 +34,14 @@ app.get('/salud', (req, res) => {
     });
 });
 
-// 1. /matriz-ganancia
-app.get(config.RUTAS.RUTA_MATRIZ_GANANCIA, asyncHandler(dataController.getMatrizGanancia));
-
-// 2. /tasas-ves
-app.get(config.RUTAS.RUTA_TASAS_VES, asyncHandler(dataController.getTasasVES));
-
-// 3. /tasas-fundablock
-app.get(config.RUTAS.RUTA_TASAS_FUNDABLOCK, asyncHandler(dataController.getTasasFundablock));
-
-// 4. /tasas-promedio
-app.get(config.RUTAS.RUTA_TASAS_PROMEDIO, asyncHandler(dataController.getTasasPromedio));
-
-// 5. /datos-imagen
-app.get(config.RUTAS.RUTA_DATOS_IMAGEN, asyncHandler(dataController.getDatosImagen));
-
-// 6. /tasas-cop_ves
-app.get(config.RUTAS.RUTA_TASAS_COP_VES, asyncHandler(dataController.getTasasCopVes));
-
-// 7. /convertir
-app.get(config.RUTAS.RUTA_CONVERTIR, asyncHandler(dataController.getConvertir));
+// Usamos rutas literales ya que la configuración de rutas estáticas se eliminó
+app.get('/matriz-ganancia', asyncHandler(dataController.getMatrizGanancia)); 
+app.get('/tasas-ves', asyncHandler(dataController.getTasasVES));
+app.get('/tasas-fundablock', asyncHandler(dataController.getTasasFundablock));
+app.get('/tasas-promedio', asyncHandler(dataController.getTasasPromedio));
+app.get('/datos-imagen', asyncHandler(dataController.getDatosImagen));
+app.get('/tasas-cop_ves', asyncHandler(dataController.getTasasCopVes));
+app.get('/convertir', asyncHandler(dataController.getConvertir));
 
 
 // --------------------------------------------------------------------------
@@ -65,8 +50,8 @@ app.get(config.RUTAS.RUTA_CONVERTIR, asyncHandler(dataController.getConvertir));
 
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
-    // Debemos acceder a CLIENTE_ACTIVO de forma segura si el servicio falló al iniciar
-    const cliente = sheetsService ? sheetsService.CLIENTE_ACTIVO : 'DESCONOCIDO'; 
+    // Debemos acceder a CLIENTE_ACTIVO del servicio
+    const cliente = sheetsService.CLIENTE_ACTIVO || 'DESCONOCIDO'; 
     
     console.error(`[ERROR ${statusCode} en ${req.path}] para cliente ${cliente}`, err.message, err.stack); 
 

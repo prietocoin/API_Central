@@ -1,69 +1,118 @@
 // controllers/data.controller.js
-// Esta capa maneja la lógica de negocio y delega la I/O al servicio.
 
-const sheetsService = require('../services/sheets.service'); 
+const sheetsService = require('../services/sheets.service');
+const constants = require('../constants');
 
 // --------------------------------------------------------------------------
-// --- LÓGICA DE NEGOCIO POR ENDPOINT ---
+// --- LÓGICA DE NEGOCIO POR ENDPOINT (Migrada del index.js) ---
 // --------------------------------------------------------------------------
 
-async function getMatrizGanancia(req, res) {
-    const data = await sheetsService.getMatrizGanancia();
-    res.json(data);
-}
-
-async function getTasasVES(req, res) {
-    const data = await sheetsService.getTasasVES();
-    res.json(data);
-}
-
-async function getTasasFundablock(req, res) {
-    const data = await sheetsService.getTasasFundablock();
-    res.json(data);
-}
-
+/**
+ * 1. Controlador para /tasas-promedio
+ */
 async function getTasasPromedio(req, res) {
-    const data = await sheetsService.getTasasPromedio();
+    // La lógica de última fila está en getSheetData del servicio
+    const data = await sheetsService.getSheetData(constants.HOJA_PRECIOS, constants.RANGO_PRECIOS);
     res.json(data);
 }
 
-async function getDatosImagen(req, res) {
-    const data = await sheetsService.getDatosImagen();
+/**
+ * 2. Controlador para /matriz-ganancia
+ */
+async function getMatrizGanancia(req, res) {
+    const data = await sheetsService.getSheetData(constants.HOJA_GANANCIA, constants.RANGO_GANANCIA);
     res.json(data);
 }
 
-async function getTasasCopVes(req, res) {
-    const data = await sheetsService.getTasasCopVes();
-    res.json(data);
-}
+/**
+ * 3. Controlador para /tasas-ves (Lógica compleja)
+ */
+async function getTasasVES(req, res) {
+    // Leemos los encabezados de B2:L2 y los valores de B23:L23 (Usando el servicio)
+    const headersArray = await sheetsService.getSheetData(constants.HOJA_GANANCIA, constants.RANGO_HEADERS_GANANCIA); 
+    const valuesArray = await sheetsService.getSheetData(constants.HOJA_GANANCIA, constants.RANGO_TASAS_VES); 
 
-// Lógica de conversión (Ejemplo)
-async function getConvertir(req, res) {
-    const { cantidad, origen, destino } = req.query;
-
-    if (!cantidad || !origen || !destino) {
-        return res.status(400).json({ error: "Parámetros de conversión incompletos (cantidad, origen, destino)." });
+    if (!headersArray || headersArray.length === 0 || !valuesArray || valuesArray.length === 0) {
+        return res.json([]);
     }
     
-    // En una implementación real:
-    // const tasas = await sheetsService.getTasasVES();
+    // Procesamiento de datos crudos
+    const headers = headersArray[0];
+    const values = valuesArray[0];
+        
+    const resultObject = {};
+    if (Array.isArray(headers) && Array.isArray(values)) {
+        headers.forEach((header, index) => {
+            resultObject[header.trim() || `Columna${index}`] = values[index] || '';
+        });
+    }
+    res.json([resultObject]);
+}
+
+/**
+ * 4. Controlador para /datos-imagen
+ */
+async function getDatosImagen(req, res) {
+    const data = await sheetsService.getSheetData(constants.HOJA_IMAGEN, constants.RANGO_IMAGEN);
+    res.json(data);
+}
+
+/**
+ * 5. Controlador para /tasas-fundablock
+ */
+async function getTasasFundablock(req, res) {
+    const data = await sheetsService.getSheetData(constants.HOJA_IMAGEN, constants.RANGO_FUNDABLOCK);
+    res.json(data);
+}
+
+/**
+ * 6. Controlador para /tasas-cop_ves (Lógica compleja)
+ */
+async function getTasasCopVes(req, res) {
+    const dataMatrix = await sheetsService.getSheetData(constants.HOJA_IMAGEN, constants.RANGO_TASAS_COP_VES); 
+
+    if (!dataMatrix || dataMatrix.length < 2) { 
+        return res.json([]);
+    }
+
+    const ratesObject = {};
+    const headers = dataMatrix[0] || [];
+    const values = dataMatrix[1] || []; 
     
-    res.json({
-        conversion_status: "Pendiente de implementación de lógica",
-        input: { cantidad: parseFloat(cantidad), origen, destino }
-    });
+    // 2. Procesar las dos filas
+    if (Array.isArray(headers) && Array.isArray(values)) {
+        for (let index = 0; index < values.length; index++) {
+            const key = headers[index] ? headers[index].trim().toUpperCase() : null;
+            const value = values[index] || '';
+
+            if (key) {
+                // Aquí usamos la función parseFactor, que se asume existe en utils
+                ratesObject[key] = value.replace(',', '.'); // Solo hacemos la sustitución
+            }
+        }
+    }
+    res.json([ratesObject]);
+}
+
+/**
+ * 7. Controlador para /convertir
+ */
+async function getConvertir(req, res) {
+    // Implementación placeholder para el servicio de conversión
+    res.status(501).json({ error: "Servicio de Conversión (RUTA_CONVERTIR) aún no implementado." });
 }
 
 
 // --------------------------------------------------------------------------
 // --- EXPORTACIÓN DE CONTROLADORES ---
 // --------------------------------------------------------------------------
+
 module.exports = {
+    getTasasPromedio,
     getMatrizGanancia,
     getTasasVES,
-    getTasasFundablock,
-    getTasasPromedio,
     getDatosImagen,
+    getTasasFundablock,
     getTasasCopVes,
     getConvertir
 };

@@ -2,14 +2,15 @@
 
 const express = require('express');
 const { google } = require('googleapis');
-const constants = require('./constants'); // <--- ¡Constantes necesarias!
+const constants = require('./constants'); // Constantes fijas de IDs, rangos y rutas
 const utils = require('./services/utils');
 const sheetsService = require('./services/sheets.service'); // Singleton de conexión y I/O
 const dataController = require('./controllers/data.controller'); // Lógica de la petición/respuesta
 const app = express();
 
 // --- CONFIGURACIÓN DE ENTORNO ---
-const PORT = process.env.PORT || 8081; // <--- CAMBIO: Ahora usa 8081 como valor por defecto
+const PORT = process.env.PORT || 8081; 
+
 
 // --- MIDDLEWARE Y RUTA RAÍZ ---
 app.use((req, res, next) => {
@@ -76,8 +77,29 @@ app.get('/', (req, res) => {
     res.send(htmlContent);
 });
 
+// --- RUTA DE DIAGNÓSTICO CRÍTICO ---
+app.get('/diagnostico-credenciales', (req, res) => {
+    const path = constants.CREDENTIALS_PATH;
+    try {
+        const fileContent = fs.readFileSync(path, 'utf8');
+        res.json({
+            status: 'OK',
+            path: path,
+            message: 'El archivo de credenciales existe y se puede leer.',
+            file_size: fileContent.length
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'ERROR',
+            path: path,
+            error: error.code,
+            message: `El archivo NO se encuentra en la ruta esperada. Causa: ${error.message}`
+        });
+    }
+});
+
+
 // --- RUTAS DE LA API (DELEGADAS AL CONTROLADOR) ---
-// Obtenemos el helper del servicio (asyncHandler) y lo usamos para envolver cada controlador
 const asyncHandler = sheetsService.asyncHandler;
 
 // 1. Obtener la última fila de Precios Promedio (Hoja Mercado)

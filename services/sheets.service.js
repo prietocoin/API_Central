@@ -17,7 +17,7 @@ const asyncHandler = fn => (req, res, next) => {
 // --------------------------------------------------------------------------
 
 async function getSheetData(sheetName, range) {
-    // 1. Inicialización Perezosa (Singleton): Solo se autentica la primera vez
+    // 1. Inicialización Perezosa (Singleton)
     if (!sheetsClient) {
         try {
             const authClient = new google.auth.GoogleAuth({
@@ -28,30 +28,52 @@ async function getSheetData(sheetName, range) {
             console.log("[SERVICE] Conexión a Google Sheets autenticada y establecida.");
         } catch (authError) {
             console.error("[SERVICE] FALLO CRÍTICO DE AUTENTICACIÓN:", authError.message);
-            throw new Error(`Fallo de Autenticación: ${authError.message}. Verifique el archivo de credenciales.`);
+            throw new Error(`Fallo de Autenticación en Sheets: ${authError.message}`);
         }
     }
     
-    // 2. Ejecución de la API
+    if (!sheetsClient) {
+         throw new Error("Cliente de Google Sheets no inicializado. Verifique el log de arranque.");
+    }
+
     try {
         const response = await sheetsClient.spreadsheets.values.get({
             spreadsheetId: constants.SPREADSHEET_ID,
             range: `${sheetName}!${range}`,
         });
-        // ... (resto del código)
 
         const values = response.data.values;
         if (!values || values.length === 0) return [];
-        // Lógica de manipulación de datos
-        
-        // ... (el resto de la lógica de excepciones y transformación)
-        
+
+        // --- Lógica de manipulación de datos V1 ---
+        // *** EXCEPCIÓN: Retornar valores crudos para el procesamiento manual ***
+        if ((sheetName === constants.HOJA_GANANCIA && (range === constants.RANGO_TASAS_VES || range === constants.RANGO_HEADERS_GANANCIA)) ||
+             (sheetName === constants.HOJA_IMAGEN && (range === constants.RANGO_IMAGEN || range === constants.RANGO_FUNDABLOCK || range === constants.RANGO_TASAS_COP_VES))) {
+            return values;
+        }
+
+        // Lógica de filtrado de última fila (Mercado)
+        if (sheetName === constants.HOJA_PRECIOS && range === constants.RANGO_PRECIOS && values.length > 0) {
+            const data = utils.transformToObjects(values);
+            return (data.length > 0) ? [data[data.length - 1]] : [];
+        }
+
+        return utils.transformToObjects(values);
+
     } catch (err) {
-        // Exponemos el mensaje de error de Google para diagnóstico.
-        console.error(`[Sheets API] Error al leer ${sheetName}/${range}: ${err}`);
-        throw new Error(`Fallo de Google Sheets: ${err.message}. Revise los permisos 403.`);
+        // --- CÓDIGO DE CORRECCIÓN INMEDIATA: Exponer el error de Google ---
+        const googleError = err.response?.data?.error?.message || err.message;
+        console.error(`[Sheets API] Error al leer ${sheetName}/${range}: `, googleError);
+        throw new Error(`Fallo de Google Sheets: ${googleError}.`); // <--- EXPONE EL ERROR REAL
     }
 }
 
 
-// ... (El resto de las exportaciones se mantienen igual)
+// --------------------------------------------------------------------------
+// --- EXPORTACIÓN PÚBLICA (Funciones y Herramientas) ---
+// --------------------------------------------------------------------------
+
+module.exports = {
+    asyncHandler,
+    getSheetData,
+};

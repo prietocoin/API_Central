@@ -1,15 +1,13 @@
 # --- FASE 1: BUILD (Instalación de dependencias) ---
-# Usamos una imagen base estable de Node.js
 FROM node:20-alpine AS builder
 
 # Establece el directorio de trabajo
 WORKDIR /app
 
-# Copia los archivos de definición de dependencias
-COPY package.json package-lock.json ./
+# Copia solo el package.json (más seguro si package-lock.json no existe)
+COPY package.json ./
 
-# Instala las dependencias de producción (omite las de desarrollo)
-# Esto instala Express, googleapis y node-cache.
+# Instala las dependencias de producción
 RUN npm install --omit=dev
 
 # --- FASE 2: PRODUCCIÓN (Imagen final, más pequeña y limpia) ---
@@ -18,15 +16,19 @@ FROM node:20-alpine
 # Establece el directorio de trabajo
 WORKDIR /app
 
-# Copia las dependencias instaladas de la fase 'builder'
+# Copia las dependencias instaladas
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copia el código fuente completo (index.js, services/, controllers/, etc.)
+# Copia el código fuente completo
 COPY . .
 
-# ⚠️ PASO CRÍTICO: Copia el archivo de credenciales a la ruta esperada por tu código.
-# Asume que credentials.json está en tu directorio local para la subida.
-COPY credentials.json /workspace/credentials.json 
+# ⚠️ Solución: Creamos el archivo credentials.json DENTRO del contenedor
+# utilizando una VARIABLE DE ENTORNO (EXTERNAL_CREDENTIALS_JSON) de EasyPanel.
+# Esto asegura que el archivo SIEMPRE exista en la ruta /workspace/credentials.json.
+ARG EXTERNAL_CREDENTIALS_JSON
+
+# Creamos el directorio de trabajo si no existe y luego escribimos el contenido JSON
+RUN mkdir -p /workspace/ && echo "$EXTERNAL_CREDENTIALS_JSON" > /workspace/credentials.json
 
 # Expone el puerto que usa tu aplicación
 EXPOSE 8080

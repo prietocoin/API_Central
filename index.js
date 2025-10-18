@@ -1,18 +1,15 @@
-// index.js
+// index.js (El Router Final)
 
 const express = require('express');
 const { google } = require('googleapis');
-const constants = require('./constants'); // Constantes fijas de IDs, rangos y rutas
-const utils = require('./services/utils'); // Funciones auxiliares (parseFactor, transformToObjects)
+const constants = require('./constants'); // <--- ¡Constantes necesarias!
+const utils = require('./services/utils');
 const sheetsService = require('./services/sheets.service'); // Singleton de conexión y I/O
 const dataController = require('./controllers/data.controller'); // Lógica de la petición/respuesta
 const app = express();
 
 // --- CONFIGURACIÓN DE ENTORNO ---
 const PORT = process.env.PORT || 8080;
-
-// --- INICIALIZACIÓN DEL SINGLETON DE SHEETS ---
-// La autenticación se dispara la primera vez que se llama a getSheetData.
 
 // --- MIDDLEWARE Y RUTA RAÍZ ---
 app.use((req, res, next) => {
@@ -80,7 +77,8 @@ app.get('/', (req, res) => {
 });
 
 // --- RUTAS DE LA API (DELEGADAS AL CONTROLADOR) ---
-const asyncHandler = sheetsService.asyncHandler; // Obtenemos el helper del servicio
+// Obtenemos el helper del servicio (asyncHandler) y lo usamos para envolver cada controlador
+const asyncHandler = sheetsService.asyncHandler;
 
 // 1. Obtener la última fila de Precios Promedio (Hoja Mercado)
 app.get(constants.RUTAS.RUTA_TASAS_PROMEDIO, asyncHandler(dataController.getTasasPromedio));

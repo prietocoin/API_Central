@@ -2,35 +2,27 @@
 
 const express = require('express');
 const app = express();
+// Importamos la configuración de rangos y rutas
+const config = require('./config/config'); 
 
-// Importamos el servicio para forzar su inicialización y obtener herramientas
-const sheetsService = require('./services/sheets.service'); 
+// Importamos el Controlador
 const dataController = require('./controllers/data.controller');
+// Importamos asyncHandler directamente del objeto sheetsService para que Node.js lo reconozca
+const { asyncHandler, CLIENTE_ACTIVO } = require('./services/sheets.service'); // <--- ¡CORRECCIÓN!
 
-// Desestructuración de herramientas para un código limpio
-const asyncHandler = sheetsService.asyncHandler; 
-const CLIENTE_ACTIVO = sheetsService.CLIENTE_ACTIVO; 
+// --- CONFIGURACIÓN DE ENTORNO DINÁMICA (Cargada y Validada Previamente) ---
 const PORT = process.env.PORT || 8080;
-
-// --- CONFIGURACIÓN DE RUTAS FIJAS (Migradas del original) ---
-const RUTAS = {
-    RUTA_TASAS_FUNDABLOCK: '/tasas-fundablock',
-    RUTA_TASAS_COP_VES: '/tasas-cop_ves',
-    RUTA_TASAS_PROMEDIO: '/tasas-promedio',
-    RUTA_MATRIZ_GANANCIA: '/matriz-ganancia',
-    RUTA_TASAS_VES: '/tasas-ves',
-    RUTA_DATOS_IMAGEN: '/datos-imagen',
-    RUTA_CONVERTIR: '/convertir',
-};
+// No necesitamos definir CLIENTE_ACTIVO de nuevo, lo tomamos de la desestructuración
+// const CLIENTE_ACTIVO = sheetsService.CLIENTE_ACTIVO; // Línea que se elimina
 
 // --------------------------------------------------------------------------
 // --- MIDDLEWARE GENERAL ---
 // --------------------------------------------------------------------------
 
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'application/json');
-    next();
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
+    next();
 });
 
 // --------------------------------------------------------------------------
@@ -38,33 +30,33 @@ app.use((req, res, next) => {
 // --------------------------------------------------------------------------
 
 app.get('/salud', (req, res) => {
-    res.json({
-        status: 'OK',
-        message: 'API V2 operativa.',
-        cliente_activo: CLIENTE_ACTIVO,
-    });
+    res.json({
+        status: 'OK',
+        message: 'API Base funcionando, Express listo.',
+        cliente_activo: CLIENTE_ACTIVO,
+    });
 });
 
 // 1. /matriz-ganancia
-app.get(RUTAS.RUTA_MATRIZ_GANANCIA, asyncHandler(dataController.getMatrizGanancia));
+app.get(config.RUTAS.RUTA_MATRIZ_GANANCIA, asyncHandler(dataController.getMatrizGanancia));
 
 // 2. /tasas-ves
-app.get(RUTAS.RUTA_TASAS_VES, asyncHandler(dataController.getTasasVES));
+app.get(config.RUTAS.RUTA_TASAS_VES, asyncHandler(dataController.getTasasVES));
 
 // 3. /tasas-fundablock
-app.get(RUTAS.RUTA_TASAS_FUNDABLOCK, asyncHandler(dataController.getTasasFundablock));
+app.get(config.RUTAS.RUTA_TASAS_FUNDABLOCK, asyncHandler(dataController.getTasasFundablock));
 
 // 4. /tasas-promedio
-app.get(RUTAS.RUTA_TASAS_PROMEDIO, asyncHandler(dataController.getTasasPromedio));
+app.get(config.RUTAS.RUTA_TASAS_PROMEDIO, asyncHandler(dataController.getTasasPromedio));
 
 // 5. /datos-imagen
-app.get(RUTAS.RUTA_DATOS_IMAGEN, asyncHandler(dataController.getDatosImagen));
+app.get(config.RUTAS.RUTA_DATOS_IMAGEN, asyncHandler(dataController.getDatosImagen));
 
 // 6. /tasas-cop_ves
-app.get(RUTAS.RUTA_TASAS_COP_VES, asyncHandler(dataController.getTasasCopVes));
+app.get(config.RUTAS.RUTA_TASAS_COP_VES, asyncHandler(dataController.getTasasCopVes));
 
 // 7. /convertir
-app.get(RUTAS.RUTA_CONVERTIR, asyncHandler(dataController.getConvertir));
+app.get(config.RUTAS.RUTA_CONVERTIR, asyncHandler(dataController.getConvertir));
 
 
 // --------------------------------------------------------------------------
@@ -72,14 +64,17 @@ app.get(RUTAS.RUTA_CONVERTIR, asyncHandler(dataController.getConvertir));
 // --------------------------------------------------------------------------
 
 app.use((err, req, res, next) => {
-    const statusCode = err.statusCode || 500;
-    console.error(`[ERROR ${statusCode} en ${req.path}] para cliente ${sheetsService.CLIENTE_ACTIVO}`, err.message, err.stack); 
+    const statusCode = err.statusCode || 500;
+    // Debemos acceder a CLIENTE_ACTIVO de forma segura si el servicio falló al iniciar
+    const cliente = sheetsService ? sheetsService.CLIENTE_ACTIVO : 'DESCONOCIDO'; 
+    
+    console.error(`[ERROR ${statusCode} en ${req.path}] para cliente ${cliente}`, err.message, err.stack); 
 
-    res.status(statusCode).json({
-        error: `Error interno del servidor (${sheetsService.CLIENTE_ACTIVO}).`,
-        detalle: err.message, // Detalle para diagnóstico
-        ruta: req.path
-    });
+    res.status(statusCode).json({
+        error: `Error interno del servidor (${cliente}).`,
+        detalle: err.message, 
+        ruta: req.path
+    });
 });
 
 
@@ -88,10 +83,10 @@ app.use((err, req, res, next) => {
 // --------------------------------------------------------------------------
 
 app.listen(PORT, () => {
-    console.log(`Servidor API (CENTRAL) escuchando en el puerto: ${PORT} para cliente: ${CLIENTE_ACTIVO}`);
+    console.log(`Servidor API (CENTRAL) escuchando en el puerto: ${PORT} para cliente: ${CLIENTE_ACTIVO}`);
 });
 
 process.on('SIGTERM', () => {
-    console.log('[SHUTDOWN] Señal SIGTERM recibida. Terminando...');
-    process.exit(0);
+    console.log('[SHUTDOWN] Señal SIGTERM recibida. Terminando...');
+    process.exit(0);
 });

@@ -89,8 +89,8 @@ async function getDatosImagen(req, res) {
 async function getTasasFundablock(req, res) {
     // --- Constantes locales para este endpoint ---
     const SPREADSHEET_ID = '19PmI2WcXUt7wtwzf4hZom_YXE298b7A6O6qI9N059JE';
-    const HOJA_IMAGEN = 'imagen';
-    const RANGO_FUNDABLOCK = 'B18:K19';
+    const HOJA_IMAGEN = 'Tabla_1';
+    const RANGO_FUNDABLOCK = 'I28:R29';
 
     const data = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_IMAGEN, RANGO_FUNDABLOCK);
     res.json(data);

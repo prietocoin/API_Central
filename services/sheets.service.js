@@ -2,7 +2,8 @@
 
 const { google } = require('googleapis');
 const constants = require('../constants');
-const utils = require('./utils');
+// ELIMINADO: utils ya no se usa aquí. El procesamiento se hará en el controlador.
+// const utils = require('./utils'); 
 
 // --- SINGLETON DE CONEXIÓN ---
 let sheetsClient = null;
@@ -13,10 +14,14 @@ const asyncHandler = fn => (req, res, next) => {
 };
 
 // --------------------------------------------------------------------------
-// --- FUNCIÓN PRINCIPAL DE GOOGLE SHEETS (Singleton Autenticación Perezoso) ---
+// --- FUNCIÓN PRINCIPAL (Refactorizada a "Servicio Tonto") ---
 // --------------------------------------------------------------------------
 
-// --- CAMBIO 1: Se añade "spreadsheetId" como primer argumento ---
+/**
+ * Obtiene los datos CRUDOS de Google Sheets.
+ * Toda la lógica de procesamiento (transformar a JSON, filtrar, etc.)
+ * se delega al controlador.
+ */
 async function getSheetData(spreadsheetId, sheetName, range) {
     // 1. Inicialización Perezosa (Singleton)
     if (!sheetsClient) {
@@ -40,36 +45,23 @@ async function getSheetData(spreadsheetId, sheetName, range) {
 
     try {
         const response = await sheetsClient.spreadsheets.values.get({
-            // --- CAMBIO 2: Se usa el parámetro "spreadsheetId" ---
             spreadsheetId: spreadsheetId,
             range: `${sheetName}!${range}`,
         });
 
         const values = response.data.values;
-        if (!values || values.length === 0) return [];
+        if (!values || values.length === 0) return []; // Si no hay datos, retorna array vacío
 
-        // --- Lógica de manipulación de datos V1 ---
-        // Esta lógica de excepciones ahora se moverá al controlador, 
-        // pero por ahora la dejamos aquí. 
-        // (Idealmente, el controlador debería definir cómo se procesan los datos)
-        if ((sheetName === "Miguelacho" && (range === "B23:L23" || range === "B2:L2")) ||
-             (sheetName === "imagen" && (range === "B15:L16" || range === "B18:K19" || range === "B21:L22"))) {
-            return values;
-        }
-
-        // Lógica de filtrado de última fila (Mercado)
-        if (sheetName === "Mercado" && range === "A1:M999" && values.length > 0) {
-            const data = utils.transformToObjects(values);
-            return (data.length > 0) ? [data[data.length - 1]] : [];
-        }
-
-        return utils.transformToObjects(values);
+        // --- CAMBIO CLAVE: Lógica de procesamiento ELIMINADA ---
+        // Se eliminaron todos los 'if (sheetName === ...)'
+        // El servicio ahora solo devuelve los datos crudos.
+        
+        return values; // <-- DEVUELVE DATOS CRUDOS (Array de arrays)
 
     } catch (err) {
         const googleError = err.response?.data?.error?.message || err.message;
-        // --- CAMBIO 3: Se añade "spreadsheetId" al log de error ---
         console.error(`[Sheets API] Error al leer ${spreadsheetId} / ${sheetName}!${range}: `, googleError);
-        throw new Error(`Fallo de Google Sheets: ${googleError}.`); 
+        throw new Error(`Fallo de Google Sheets: ${googleError}.`); 
     }
 }
 

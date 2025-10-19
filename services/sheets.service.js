@@ -16,10 +16,12 @@ const asyncHandler = fn => (req, res, next) => {
 // --- FUNCIÓN PRINCIPAL DE GOOGLE SHEETS (Singleton Autenticación Perezoso) ---
 // --------------------------------------------------------------------------
 
-async function getSheetData(sheetName, range) {
+// --- CAMBIO 1: Se añade "spreadsheetId" como primer argumento ---
+async function getSheetData(spreadsheetId, sheetName, range) {
     // 1. Inicialización Perezosa (Singleton)
     if (!sheetsClient) {
         try {
+          
             const authClient = new google.auth.GoogleAuth({
                 keyFile: constants.CREDENTIALS_PATH,
                 scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
@@ -38,8 +40,8 @@ async function getSheetData(sheetName, range) {
 
     try {
         const response = await sheetsClient.spreadsheets.values.get({
-            spreadsheetId: constants.SPREADSHEET_ID,
-            // --- ESTA ES LA LÍNEA CORREGIDA (Usa backticks `` ` ``) ---
+            // --- CAMBIO 2: Se usa el parámetro "spreadsheetId" ---
+            spreadsheetId: spreadsheetId,
             range: `${sheetName}!${range}`,
         });
 
@@ -47,14 +49,16 @@ async function getSheetData(sheetName, range) {
         if (!values || values.length === 0) return [];
 
         // --- Lógica de manipulación de datos V1 ---
-        // *** EXCEPCIÓN: Retornar valores crudos para el procesamiento manual ***
-        if ((sheetName === constants.HOJA_GANANCIA && (range === constants.RANGO_TASAS_VES || range === constants.RANGO_HEADERS_GANANCIA)) ||
-             (sheetName === constants.HOJA_IMAGEN && (range === constants.RANGO_IMAGEN || range === constants.RANGO_FUNDABLOCK || range === constants.RANGO_TASAS_COP_VES))) {
+        // Esta lógica de excepciones ahora se moverá al controlador, 
+        // pero por ahora la dejamos aquí. 
+        // (Idealmente, el controlador debería definir cómo se procesan los datos)
+        if ((sheetName === "Miguelacho" && (range === "B23:L23" || range === "B2:L2")) ||
+             (sheetName === "imagen" && (range === "B15:L16" || range === "B18:K19" || range === "B21:L22"))) {
             return values;
         }
 
         // Lógica de filtrado de última fila (Mercado)
-        if (sheetName === constants.HOJA_PRECIOS && range === constants.RANGO_PRECIOS && values.length > 0) {
+        if (sheetName === "Mercado" && range === "A1:M999" && values.length > 0) {
             const data = utils.transformToObjects(values);
             return (data.length > 0) ? [data[data.length - 1]] : [];
         }
@@ -62,11 +66,10 @@ async function getSheetData(sheetName, range) {
         return utils.transformToObjects(values);
 
     } catch (err) {
-        // --- CÓDIGO DE CORRECCIÓN INMEDIATA: Exponer el error de Google ---
         const googleError = err.response?.data?.error?.message || err.message;
-        // Esta línea también debe usar backticks para que las variables funcionen
-        console.error(`[Sheets API] Error al leer ${sheetName}/${range}: `, googleError);
-        throw new Error(`Fallo de Google Sheets: ${googleError}.`); // <--- EXPONE EL ERROR REAL
+        // --- CAMBIO 3: Se añade "spreadsheetId" al log de error ---
+        console.error(`[Sheets API] Error al leer ${spreadsheetId} / ${sheetName}!${range}: `, googleError);
+        throw new Error(`Fallo de Google Sheets: ${googleError}.`); 
     }
 }
 

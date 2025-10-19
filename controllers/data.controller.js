@@ -88,7 +88,7 @@ async function getDatosImagen(req, res) {
  */
 async function getTasasFundablock(req, res) {
     // --- Constantes locales para este endpoint ---
-    const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
+    const SPREADSHEET_ID = '19PmI2WcXUt7wtwzf4hZom_YXE298b7A6O6qI9N059JE';
     const HOJA_IMAGEN = 'imagen';
     const RANGO_FUNDABLOCK = 'B18:K19';
 

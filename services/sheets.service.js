@@ -3,7 +3,6 @@
 const { google } = require('googleapis');
 const constants = require('../constants');
 // ELIMINADO: utils ya no se usa aquí. El procesamiento se hará en el controlador.
-// const utils = require('./utils'); 
 
 // --- SINGLETON DE CONEXIÓN ---
 let sheetsClient = null;
@@ -52,8 +51,7 @@ async function getSheetData(spreadsheetId, sheetName, range) {
         const values = response.data.values;
         if (!values || values.length === 0) return []; // Si no hay datos, retorna array vacío
 
-        // --- CAMBIO CLAVE: Lógica de procesamiento ELIMINADA ---
-        // Se eliminaron todos los 'if (sheetName === ...)'
+        // --- Lógica de procesamiento ELIMINADA ---
         // El servicio ahora solo devuelve los datos crudos.
         
         return values; // <-- DEVUELVE DATOS CRUDOS (Array de arrays)

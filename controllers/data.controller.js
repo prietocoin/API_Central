@@ -33,7 +33,7 @@ async function getMatrizGanancia(req, res) {
     // --- Constantes locales para este endpoint ---
     const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
     const HOJA_GANANCIA = 'Miguelacho';
-    const RANGO_GANANCIA = 'B2:L12';
+    const RANGO_GANANCIA = 'I28:R29';
 
     const data = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_GANANCIA, RANGO_GANANCIA);
     res.json(data);

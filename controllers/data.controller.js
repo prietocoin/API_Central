@@ -1,178 +1,95 @@
 // controllers/data.controller.js
 
 const sheetsService = require('../services/sheets.service');
-// ELIMINADO: constants.js ya no se usa aquí. Las constantes se definen localmente.
-// ELIMINADO: utils.js no se usa en este archivo (la lógica de parseo está en el servicio).
+// AÑADIDO: 'utils' es necesario de nuevo para que el controlador sea "inteligente"
+const utils = require('../services/utils'); 
 
 // --------------------------------------------------------------------------
-// --- PATRÓN DE DISEÑO PARA ESCALABILIDAD ---
-//
-// Cada función ahora define sus PROPIAS constantes (ID, Hoja, Rango).
-// Esto permite que cada endpoint consulte un archivo, hoja o rango 
-// completamente diferente, logrando la escalabilidad para múltiples clientes.
-// 
+// --- CONTROLADOR GENÉRICO (El nuevo "Cerebro") ---
 // --------------------------------------------------------------------------
 
 /**
- * 1. Controlador para /tasas-promedio
- */
-async function getTasasPromedio(req, res) {
-    // --- Constantes locales para este endpoint ---
-    const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
-    const HOJA_PRECIOS = 'Mercado';
-    const RANGO_PRECIOS = 'A1:M999';
+ * Controlador genérico para la ruta POST /query.
+ * Lee {id, hoja, rango, formato} del body de la petición
+ * y devuelve los datos procesados según el formato solicitado.
+ */
+async function postQueryGenerico(req, res) {
+    // 1. Leer los parámetros del body
+    const { id, hoja, rango, formato } = req.body;
+    const format = formato || 'raw'; // Si no se especifica formato, se devuelven datos crudos
 
-    const data = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_PRECIOS, RANGO_PRECIOS);
-    res.json(data);
-}
+    // 2. Validación básica
+    if (!id || !hoja || !rango) {
+        return res.status(400).json({ 
+            error: "Petición inválida.",
+            detalle: "El body debe contener 'id', 'hoja', y 'rango'." 
+        });
+    }
 
-/**
- * 2. Controlador para /matriz-ganancia
- */
-async function getMatrizGanancia(req, res) {
-    // --- Constantes locales para este endpoint ---
-    const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
-    const HOJA_GANANCIA = 'Miguelacho';
-    const RANGO_GANANCIA = 'I28:R29';
+    // 3. Obtener los datos crudos del servicio "tonto"
+    const rawData = await sheetsService.getSheetData(id, hoja, rango);
 
-    const data = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_GANANCIA, RANGO_GANANCIA);
-    res.json(data);
-}
+    // 4. Procesar los datos según el formato solicitado
+    switch (format) {
+        
+        // FORMATO 1: Devolver el array de arrays crudo
+        case 'raw':
+            return res.json(rawData);
 
-/**
- * 3. Controlador para /tasas-ves (Lógica compleja)
- */
-async function getTasasVES(req, res) {
-    // --- Constantes locales para este endpoint ---
-    const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
-    const HOJA_GANANCIA = 'Miguelacho';
-    const RANGO_HEADERS_GANANCIA = 'B2:L2';
-    const RANGO_TASAS_VES = 'B23:L23';
+        // FORMATO 2: Convertir a un array de objetos JSON
+        case 'json':
+            const jsonData = utils.transformToObjects(rawData);
+            return res.json(jsonData);
 
-    // La lógica de combinación de encabezados y valores reside aquí
-    const headersArray = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_GANANCIA, RANGO_HEADERS_GANANCIA); 
-    const valuesArray = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_GANANCIA, RANGO_TASAS_VES); 
+        // FORMATO 3: Convertir a JSON y devolver solo la última fila
+        case 'json_ultima_fila':
+            const allJson = utils.transformToObjects(rawData);
+            const lastRow = (allJson.length > 0) ? [allJson[allJson.length - 1]] : [];
+            return res.json(lastRow);
 
-    if (!headersArray || headersArray.length === 0 || !valuesArray || valuesArray.length === 0) {
-        return res.json([]);
-    }
-    
-    // Procesamiento de datos crudos
-    const headers = headersArray[0];
-    const values = valuesArray[0];
-        
-    const resultObject = {};
-    if (Array.isArray(headers) && Array.isArray(values)) {
-        headers.forEach((header, index) => {
-            resultObject[header.trim() || `Columna${index}`] = values[index] || '';
-        });
-    }
-    res.json([resultObject]);
-}
+        // FORMATO 4: Procesar 2 filas como Clave/Valor
+        case 'json_clave_valor':
+            if (!rawData || rawData.length < 2) { 
+                return res.json([]); // No hay suficientes datos para procesar
+            }
+        
+            const ratesObject = {};
+            const headers = rawData[0] || [];
+            const values = rawData[1] || []; 
+            
+            if (Array.isArray(headers) && Array.isArray(values)) {
+                for (let index = 0; index < values.length; index++) {
+                    const key = headers[index] ? headers[index].trim().toUpperCase() : null;
+                    const value = values[index] || '';
+                    if (key) {
+                        ratesObject[key] = value.replace(',', '.'); 
+                    }
+                }
+            }
+            return res.json([ratesObject]); // Devuelve un array con el objeto
 
-/**
- * 4. Controlador para /datos-imagen
- */
-async function getDatosImagen(req, res) {
-    // --- Constantes locales para este endpoint ---
-    const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
-    const HOJA_IMAGEN = 'imagen';
-    const RANGO_IMAGEN = 'B15:L16';
-
-    const data = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_IMAGEN, RANGO_IMAGEN);
-    res.json(data);
-}
-
-/**
- * 5. Controlador para /tasas-fundablock
- */
-async function getTasasFundablock(req, res) {
-    // --- Constantes locales para este endpoint ---
-    const SPREADSHEET_ID = '19PmI2WcXUt7wtwzf4hZom_YXE298b7A6O6qI9N059JE';
-    const HOJA_IMAGEN = 'Tabla_1';
-    const RANGO_FUNDABLOCK = 'I28:R29';
-
-    const data = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_IMAGEN, RANGO_FUNDABLOCK);
-    res.json(data);
-}
-
-/**
- * 6. Controlador para /tasas-cop_ves (Lógica compleja)
- */
-async function getTasasCopVes(req, res) {
-    // --- Constantes locales para este endpoint ---
-    const SPREADSHEET_ID = '1jv-wydSjH84MLUtj-zRvHsxUlpEiqe5AlkTkr6K2248';
-    const HOJA_IMAGEN = 'imagen';
-    const RANGO_TASAS_COP_VES = 'B21:L22';
-
-    const dataMatrix = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_IMAGEN, RANGO_TASAS_COP_VES); 
-
-    if (!dataMatrix || dataMatrix.length < 2) { 
-        return res.json([]);
-    }
-
-    const ratesObject = {};
-    const headers = dataMatrix[0] || [];
-    const values = dataMatrix[1] || []; 
-    
-    // 2. Procesar las dos filas
-    if (Array.isArray(headers) && Array.isArray(values)) {
-        for (let index = 0; index < values.length; index++) {
-            const key = headers[index] ? headers[index].trim().toUpperCase() : null;
-            const value = values[index] || '';
-
-            if (key) {
-                ratesObject[key] = value.replace(',', '.');D_   
-            }
-        }
-    }
-    res.json([ratesObject]);
-}
-
-/**
- * 7. Controlador para /convertir
- */
-async function getConvertir(req, res) {
-    // Esta función aún no usa Google Sheets. 
-    // Cuando lo haga, sigue el mismo patrón:
-    /*
-    const SPREADSHEET_ID = '...';
-    const HOJA_CONVERSION = '...';
-    const RANGO_CONVERSION = '...';
-    const data = await sheetsService.getSheetData(SPREADSHEET_ID, HOJA_CONVERSION, RANGO_CONVERSION);
-    ...
-    */
-    res.status(501).json({ error: "Servicio de Conversión (RUTA_CONVERTIR) aún no implementado." });
+        // Caso por defecto: Formato no reconocido
+        default:
+            return res.status(400).json({ 
+                error: `Formato '${format}' no reconocido.`,
+                detalle: "Formatos válidos: raw, json, json_ultima_fila, json_clave_valor."
+            });
+    }
 }
 
 
-// --- EJEMPLO DE CÓMO AÑADIR UN NUEVO CLIENTE ---
-/*
-async function getDatosClienteNuevo(req, res) {
-    // --- Constantes para un cliente y archivo TOTALMENTE NUEVO ---
-    const SPREADSHEET_ID_CLIENTE = 'ID-DEL-NUEVO-ARCHIVO-abc123';
-    const HOJA_CLIENTE = 'ReporteMensual';
-    const RANGO_CLIENTE = 'B2:Z100';
+// --------------------------------------------------------------------------
+// --- CONTROLADORES ANTIGUOS (ELIMINADOS) ---
+// --------------------------------------------------------------------------
 
-    const data = await sheetsService.getSheetData(SPREADSHEET_ID_CLIENTE, HOJA_CLIENTE, RANGO_CLIENTE);
-    // ... (puedes aplicar lógica de transformación si es necesario) ...
-    res.json(data);
-}
-*/
-
+// ELIMINADOS: getTasasPromedio, getMatrizGanancia, getTasasVES, 
+// getDatosImagen, getTasasFundablock, getTasasCopVes, getConvertir
 
 // --------------------------------------------------------------------------
 // --- EXPORTACIÓN DE CONTROLADORES ---
 // --------------------------------------------------------------------------
 
 module.exports = {
-    getTasasPromedio,
-    getMatrizGanancia,
-    getTasasVES,
-    getDatosImagen,
-    getTasasFundablock,
-    getTasasCopVes,
-    getConvertir
-    // Cuando añadas nuevos clientes, expórtalos aquí:
-    // getDatosClienteNuevo
+    // La única función que exportamos
+    postQueryGenerico
 };
